@@ -7,6 +7,7 @@ import pandas as pd
 import re
 from datetime import datetime
 from time import sleep
+import os
 
 # Ввод ссылки через диалоговое окно
 root = tk.Tk()
@@ -14,10 +15,26 @@ root.withdraw()
 url = simpledialog.askstring(title="Krisha.kz Parser", prompt="Enter URL")
 
 # Настройка ChromeDriver
-options = Options()
-options.add_argument("--disable-blink-features=AutomationControlled")
-options.add_argument("--start-maximized")
-driver = webdriver.Chrome(options=options)
+chrome_options = Options()
+chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+chrome_options.add_argument("--start-maximized")
+chrome_options.add_argument("--disable-extensions")
+chrome_options.add_argument("--disable-popup-blocking")
+chrome_options.add_argument("--disable-notifications")
+chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-infobars")
+# блокируем изображения, уведомления и медиа
+prefs = {
+    "profile.managed_default_content_settings.images": 2,
+    "profile.default_content_setting_values.notifications": 2,
+    "profile.default_content_setting_values.plugins": 2,
+}
+chrome_options.add_experimental_option("prefs", prefs)
+chrome_options.set_capability("pageLoadStrategy", "eager")
+
+driver = webdriver.Chrome(options=chrome_options)
 driver.set_page_load_timeout(60)
 
 # Определение количества страниц
@@ -38,12 +55,13 @@ except:
 data = {
     'Ссылка': [], 'Комнаты': [], 'Площадь': [], 'Этаж': [], 'Доп сведения': [],
     'Цена': [], 'Район': [], 'Улица': [], 'Адрес': [],
-    'Тип': [], 'Год Постройки': [], 'Цена за квадрат': []
+    'Тип': [], 'Год Постройки': [], 'Цена за квадрат': [], 'Страница': []
 }
 
 for page in range(1, last_page + 1):
     try:
         driver.get(url + page_param + str(page))
+        current_page = page
         titles = driver.find_elements(By.CLASS_NAME, 'a-card__title')
         subtitles = driver.find_elements(By.CLASS_NAME, 'a-card__subtitle')
         previews = driver.find_elements(By.CLASS_NAME, 'a-card__text-preview')
@@ -105,6 +123,7 @@ for page in range(1, last_page + 1):
             data['Тип'].append(building_type)
             data['Год Постройки'].append(year)
             data['Цена за квадрат'].append(price_per_sq)
+            data['Страница'].append(current_page)
 
         sleep(1)
     except Exception as e:
@@ -113,11 +132,8 @@ for page in range(1, last_page + 1):
 
 driver.quit()
 
-# Сохранение в Excel
-df = pd.DataFrame(data)
-file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
-if file_path:
-    df.to_excel(file_path, index=False)
-    print(f"Файл сохранён: {file_path}")
-else:
-    print("Файл не сохранён.")
+# Сохранение в CSV
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+file_path = os.path.join(os.getcwd(), f"krisha_data_{timestamp}.csv")
+pd.DataFrame(data).to_csv(file_path, mode='a', header=True, index=False)
+print(f"Файл сохранён: {file_path}")
