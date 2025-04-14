@@ -8,4 +8,4 @@ df_test.columns=df_train.columns
 head_db = df_train.head()
 df_full = pd.concat([df_train, df_test], ignore_index=True)
 
-print(df_full)
+print(df_full.head())
