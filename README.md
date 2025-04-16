@@ -1,6 +1,6 @@
 ** ML Model for housing evaluation, based on geograpphy + market data **
 
 TODO:
-1) Vectorize words in dbs
-2) Create Vector DB
-3) Find out solutions for GeoSpatial Vectorization? KNNs? Heatmapping?
+1) Vectorize words
+3) Create Vector DB
+4) Find out solutions for GeoSpatial Vectorization? KNNs? Heatmapping?
