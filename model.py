@@ -1,7 +1,10 @@
 import pandas as pd
-import torch 
+import torch
+import torch.nn as nn
+import torch.optim as optim
 
-torch.cuda.is_available()
+print("MPS available!" if torch.backends.mps.is_available() else "MPS not available.")
+
 df_train = pd.read_csv('db_train.csv')
 df_test = pd.read_csv('db_test.csv')
 
