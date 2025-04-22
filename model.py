@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # import torch.nn as nn
 # import torch.optim as optim
 
-# print("MPS available!" if torch.backends.mps.is_available() else "MPS not available.")
+# print("MPS on" if torch.backends.mps.is_available() else "MPS off.")
 
 # df_train = pd.read_csv('db_train.csv')
 # df_test = pd.read_csv('db_test.csv')
@@ -22,33 +22,52 @@ import matplotlib.pyplot as plt
 # head_db = df_train.head()
 # df_full = pd.concat([df_train, df_test], ignore_index=True)
 
-# ===== Загрузка векторизованных данных =====
 df = pd.read_csv("vectorized_apartments.csv")
-coords = df[["num_lat", "num_lon"]]  # если ты их нормализовал
+coords = df[["num_lat", "num_lon"]]  #normalized notation
 df["location_cluster"] = KMeans(n_clusters=20, random_state=1801).fit_predict(coords)
 X = df.drop(["price"], axis=1).values
 Y = np.log1p(df["price"].values)
 print(X.shape) 
 
-# ===== Обучение модели XGBoost =====
+
 X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=1801)
 
-model = xgb.XGBRegressor(n_estimators=1000, max_depth=12, learning_rate=0.05,subsample=0.9, colsample_bytree=0.8)
-model.fit(
-    X_train, y_train,
-    eval_set=[(X_test, y_test)],
+# XGBoost training via low‑level API to enable MAE early stopping
+dtrain = xgb.DMatrix(X_train, label=y_train)
+dtest  = xgb.DMatrix(X_test,  label=y_test)
+
+params = {
+    "objective": "reg:squarederror",
+    "eval_metric": "mae",
+    "n_estimators": 5000,
+    "eta": 0.01,
+    "max_depth": 10,
+    "subsample": 0.6,
+    "colsample_bytree": 0.6,
+    "min_child_weight": 5
+
+}
+
+num_round = 1000
+booster = xgb.train(
+    params,
+    dtrain,
+    num_boost_round=num_round,
+    evals=[(dtest, "val")],
     early_stopping_rounds=25,
-    verbose=True
+    verbose_eval=True,
 )
 
-xgb.plot_importance(model, max_num_features=40)
+# feature importance plot matplotlib
+xgb.plot_importance(booster, max_num_features=40)
 plt.show()
 
-joblib.dump(model, "xgb_model.joblib")
-print("xgb_model.joblib")
-# ===== Предсказание и вывод ошибки =====
+#save booste
+booster.save_model("xgb_model.json")
+print("xgb_model.json saved")
 
-y_test = np.expm1(y_test)
-y_pred = np.expm1(model.predict(X_test))
-mae = mean_absolute_error(y_test, y_pred)
+#MAE calc
+y_test_exp  = np.expm1(y_test)
+y_pred_exp  = np.expm1(booster.predict(dtest))
+mae = mean_absolute_error(y_test_exp, y_pred_exp)
 print(f"MAE: {mae:.2f} ₸")
