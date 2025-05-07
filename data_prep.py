@@ -27,28 +27,25 @@ df_full.fillna({
     "extra": "" }, inplace=True)
 
 df_full.to_csv('new_full.csv')
-# ===== Нормализация числовых признаков =====
 from sklearn.preprocessing import StandardScaler
 numeric_cols = ["parsed_area", "parsed_rooms", "lat", "lon", "build_year"]
 scaler = StandardScaler()
 X_numeric = scaler.fit_transform(df_full[numeric_cols])
 
-# ===== Векторизация текстовых признаков =====
+
 from sentence_transformers import SentenceTransformer
 model = SentenceTransformer("all-mpnet-base-v2")
-X_title = model.encode(df_full["title"].tolist(), show_progress_bar=True)
+#X_title = model.encode(df_full["title"].tolist(), show_progress_bar=True)
 X_extra = model.encode(df_full["extra"].tolist(), show_progress_bar=True)
 
-# ===== Объединение всех признаков в финальный датафрейм =====
 
 
-columns = [f"num_{col}" for col in numeric_cols] + \
-          [f"title_vec_{i}" for i in range(X_title.shape[1])] + \
-          [f"extra_vec_{i}" for i in range(X_extra.shape[1])]
+columns = [f"num_{col}" for col in numeric_cols] # + [f"extra_vec_{i}" for i in range(X_extra.shape[1])]
+#[f"title_vec_{i}" for i in range(X_title.shape[1])] + 
 
-X_combined = np.hstack([X_numeric, X_title, X_extra])
-df_vectorized = pd.DataFrame(X_combined, columns=columns)
+X_combined = np.hstack([X_numeric, X_extra])
+df_vectorized = pd.DataFrame(X_numeric, columns=columns)
 df_vectorized["price"] = df_full["price"].values
 
-# ===== Сохранение =====
-df_vectorized.to_csv("vectorized_apartments.csv", index=False)
+
+df_vectorized.to_csv("vectorized_apartments_numeric.csv", index=False)
