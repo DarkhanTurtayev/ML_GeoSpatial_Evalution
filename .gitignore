@@ -1,5 +1,6 @@
 vectorized_apartments.csv
 vectorized_apartments_2.csv
 xgb_model.json
+db_full_cleaned_vectorized.csv
 envVal/
 AutogluonModels/
